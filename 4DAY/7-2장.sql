@@ -610,3 +610,19 @@ EXEC(@sql)
 
 -- SELECT * FROM userTbl WHERE userid = 'EJW' 문장을 바로 실행하지 않고 변수 @sql에 입력시켜놓고 EXEC() 함수로 실행할 수 있다. 
 -- 이렇게 쿼리문을 실행하는 것을 동적SQL 이라고 부른다. 
+
+DECLARE @curDATE DATE
+DECLARE @curYear VARCHAR(4)
+DECLARE @curMonth VARCHAR(2)
+DECLARE @curDay VARCHAR(2)
+DECLARE @sql VARCHAR(100)
+
+SET @curDATE = GETDATE()
+SET @curYear = YEAR(@curDATE)
+SET @curMonth = MONTH(@curDATE)
+SET @curDay = DAY(@curDATE)
+
+SET @sql = 'CREATE TABLE myTbl' + @curYear + '_' + @curMonth + '_' + @curDay
+SET @sql += '(id INT, name NCHAR(10))'
+
+EXEC(@sql)
