@@ -173,7 +173,20 @@ INSERT INTO clusterTbl VALUES('KAI', '카아이');
 INSERT INTO nonclusterTbl VALUES('FNT', '푸니타');
 INSERT INTO nonclusterTbl VALUES('KAI', '카아이');
 
--- 클러스터형 인덱스의 생성시에는 데이터 페이지 전체가 다시 정렬된다. -- 이미 대용량의 데이터가 입력된 상태라 면 업무시간에 클러스터형 인덱스를 생성하는 것은 심각한 시스템 부하를 줄 수 있으므로 신중하게 생각해야 한다.-- 클러스터형 인덱스는 인덱스 자체의 리프 페이지가 곧 데이터다. 인덱스 자체에 데이터가 포함이 되어있다고 볼 수있다. -- 비클러스터형보다 검색 속도는 더 빠르다. 하지만, 데이터의 입력/수정/삭저는 더 느리다. -- 클러스터 인덱스는 성능이 좋지만 테이블에 한 개만 생성할 수 있다. -- 그러므로 어느 열에 클러스터형 인덱스를 생성하느냐 따라서 시스템의 성능이 달라질 수 있다.-- 비클러스터형 인덱스의 생성 시에는 데이터 페이지는 그냥 둔 상태에서 별도의 페이지에 인덱스를 구성한다.-- 비클러스터형 인덱스는 인덱스 자체의 리프 페이지는 데이터가 아니라, 데이터가 위치하는 포인터(RID)다. -- 클러스터형보다 검색 속도는 더 느리지만, 데이터의 입력/수정/삭제는 덜 느리다. -- 비클러스터형 인덱스는 여러 개 생성할 수가 있다. 하지만, 함부로 남용할 경우에는 -- 오히려 시스템 성늘을 떨어뜨리는 결과를 초래할 수 있으므로 꼭 필요한 열에만 생성하는 것이 좋다.-----------------------클러스터 비클러스터형 인덱스 혼합 USE tempdb;
+-- 클러스터형 인덱스의 생성시에는 데이터 페이지 전체가 다시 정렬된다. 
+-- 이미 대용량의 데이터가 입력된 상태라 면 업무시간에 클러스터형 인덱스를 생성하는 것은 심각한 시스템 부하를 줄 수 있으므로 신중하게 생각해야 한다.
+-- 클러스터형 인덱스는 인덱스 자체의 리프 페이지가 곧 데이터다. 인덱스 자체에 데이터가 포함이 되어있다고 볼 수있다. 
+-- 비클러스터형보다 검색 속도는 더 빠르다. 하지만, 데이터의 입력/수정/삭저는 더 느리다. 
+-- 클러스터 인덱스는 성능이 좋지만 테이블에 한 개만 생성할 수 있다. 
+-- 그러므로 어느 열에 클러스터형 인덱스를 생성하느냐 따라서 시스템의 성능이 달라질 수 있다.
+-- 비클러스터형 인덱스의 생성 시에는 데이터 페이지는 그냥 둔 상태에서 별도의 페이지에 인덱스를 구성한다.
+-- 비클러스터형 인덱스는 인덱스 자체의 리프 페이지는 데이터가 아니라, 데이터가 위치하는 포인터(RID)다. 
+-- 클러스터형보다 검색 속도는 더 느리지만, 데이터의 입력/수정/삭제는 덜 느리다. 
+-- 비클러스터형 인덱스는 여러 개 생성할 수가 있다. 하지만, 함부로 남용할 경우에는 
+-- 오히려 시스템 성늘을 떨어뜨리는 결과를 초래할 수 있으므로 꼭 필요한 열에만 생성하는 것이 좋다.
+
+-----------------------클러스터 비클러스터형 인덱스 혼합 
+USE tempdb;
 CREATE TABLE mixedTbl
 ( userID char(8) NOT NULL,
   name nvarchar(10) NOT NULL,
@@ -324,3 +337,74 @@ ALTER TABLE USERTBL
 	DROP CONSTRAINT PK__userTbl__CB9A1CDF5C49B816;
 GO
 EXEC sp_help USERTBL; --조회 
+GO
+
+-- 인덱스가 없을 때 클러스터형 인덱스, 비클러스터형 인덱스의 성능을 비교
+USE tempdb;
+CREATE DATABASE indexDB;
+GO
+
+--실습을 위한  인덱스 정보를 파악해주는 저장 프로시저를 생성
+USE indexDB;
+GO
+CREATE PROCEDURE usp_IndexInfo
+	@tablename sysname
+AS
+	SELECT @tablename AS '테이블이름',
+	I.name AS '인덱스이름',
+	I.type_desc AS '인덱스타입',
+	A.data_pages AS '페이지개수', --사용된 데이터 페이지수
+	A.data_pages * 8 AS '크기(KB)', -- 페이지를 KB(1page = 8kb)로 계산 
+	P.rows AS '행개수'
+FROM sys.indexes I
+	INNER JOIN sys.partitions P
+		ON P.object_id = I.object_id	
+	AND OBJECT_ID(@tablename) = I.object_id
+	AND I.index_id = P.index_id
+INNER JOIN sys.allocation_units A
+	ON A.container_id = P.hobt_id;
+GO
+
+-- Adventurec works의 sales customer 테이블 복사 
+USE indexDB;
+SELECT COUNT(*) FROM AdventureWorks2016CTP3.Sales.Customer;
+
+SELECT TOP(19820) * INTO Cust FROM AdventureWorks2016CTP3.Sales.Customer ORDER BY NEWID();
+SELECT TOP(19820) * INTO Cust_C FROM AdventureWorks2016CTP3.Sales.Customer ORDER BY NEWID();
+SELECT TOP(19820) * INTO Cust_NC FROM AdventureWorks2016CTP3.Sales.Customer ORDER BY NEWID();
+--조회를 해보면 순서가 뒤섞여있음
+SELECT TOP(5)*FROM Cust;
+SELECT TOP(5)*FROM Cust_C;
+SELECT TOP(5)*FROM Cust_NC;
+--테이블에 인덱스가 있는지 확인 
+EXEC USP_INDEXINFO CUST;
+EXEC USP_INDEXINFO CUST_C;
+EXEC USP_INDEXINFO CUST_NC;
+--인덱스를 두 테이블에 생성
+CREATE CLUSTERED INDEX idx_cust_c ON Cust_C (CustomerID);
+CREATE NONCLUSTERED INDEX idx_cust_nc ON Cust_NC (CustomerID);
+--다시 조회
+SELECT TOP(5)* FROM Cust;
+SELECT TOP (5)* FROM Cust_C;
+SELECT TOP(5)* FROM Cust_NC;
+--인덱스 다시 확인
+EXEC USP_INDEXINFO CUST;
+EXEC USP_INDEXINFO CUST_C;
+EXEC USP_INDEXINFO CUST_NC;
+-- 쿼리 실행 시 결과 창에서 읽은 페이지수를 확인하기 위하여 SET STATISTICS IO를 체크 --메시지 창에 논리적 읽기 수가 나옴
+USE indexDB;
+SELECT *FROM Cust WHERE CustomerID = 100; 
+SELECT *FROM Cust_C WHERE CustomerID = 100; 
+SELECT *FROM Cust_NC WHERE CustomerID = 100; 
+--범위로 조회시 성능 체크 
+SELECT *FROM Cust WHERE CustomerID < 100; 
+SELECT *FROM Cust_C WHERE CustomerID < 100; 
+SELECT *FROM Cust_NC WHERE CustomerID < 100; 
+
+
+
+
+
+
+
+
