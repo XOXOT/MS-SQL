@@ -399,12 +399,117 @@ SELECT *FROM Cust_NC WHERE CustomerID = 100;
 --범위로 조회시 성능 체크 
 SELECT *FROM Cust WHERE CustomerID < 100; 
 SELECT *FROM Cust_C WHERE CustomerID < 100; 
-SELECT *FROM Cust_NC WHERE CustomerID < 100; 
+
+SELECT *FROM Cust_C WHERE CustomerID < 200; 
+
+SELECT *FROM Cust_C WHERE CustomerID < 40000; 
+-- 최대 값이 30118인데 더 높은 40000을 지정하여 전체 페이지를 검색하게 됨
+
+SELECT *FROM Cust_C; --검색할 필요없이 스캔을 할 것이다.
+GO
+
+---- 비클러스터형 조회
+SELECT *FROM Cust_NC WHERE CustomerID < 100;
+-- 100개밖에 검색하지 않았는데 스캔을 했다...(인덱스 사용X)
+-- 이유
+-- 루트 페이지인 10번 페이지를 읽어서 1 번 고객 ID부터는 100번 페이지에 있는 것을 알아냈다. 
+-- 인덱스의 리프 페이지인 100번 페이지에 가보니 1 ~ 100까지의 고객 아이디가 모두 있다. 
+-- 고객 아이디 1을 찾기 위해서 페이지 1002번을 읽고 세 번째(#3)의 데이터에 접근한다. 
+-- 고객 아이디 2를 찾기 위해서 페이지 1137번을 읽고 백십 번째(#110)의 데이터에 접근한다.
+-- 고객 아이디 3을 찾기 위해서 … … 
+-- 고객 아이디 100번까지 반복 
+-- 이렇게 데이터 페이지를 왔다갔다 하며 읽어야 한다. 
+-- 이렇게 읽을 바에는 차라리 인덱스가 없는 것으로 치고 데이터 페이지에서 처음부터 찾아보는 것이 더 빠르다.
+
+---- 앞에서 SQL SERVER가 인덱스를 사용하지 않았는데 강제로 인덱스를 사용하게 한다면?
+SELECT *FROM Cust_NC WITH (INDEX(idx_cust_nc)) WHERE CustomerID <100; 
+-- 위 구문과 같이 WITH절과 함께 사용하는 것을 테이블 힌트라고 한다. (되도록 사용하지 않는 것이 좋다.)
+-- 결과를 보면 페이지를 101페이지만 읽었으니 테이블 스캔보다 효율이 좋지 않을 것이라고 생각이 든다.
+-- 하지만 결과를 보면 CustomerID가 정렬되어 있는 것이 보인다. 
+-- 즉, 인덱스를 기준으로 데이터 페이지를 이리저리 왔다갔다하면서 읽게 되어 데이터 페이지를 읽은 개수는 작지만
+-- 실제 수행하게 되는 시스템 부하는 더 크기 때문에 SQL SERVER가 테이블 스캔을 사용하게 된 것이다.
+GO
+
+---- 그럼 범위를 약간 줄인다면?
+SELECT *FROM Cust_NC WHERE CustomerID < 60; --동일
+SELECT *FROM Cust_NC WHERE CustomerID < 50; -- 51개로 줄어듬 (인덱스를 사용)
+-- 여기서 알아볼 수 있는 것은 비클러스터형 인덱스 중 전체 데이터의 1~3%이상을 스캔하는 경우 SQL SERVER는 인덱스를 사용하지 않고 테이블 검색을 실시한다는 것
+-- 즉, 전체 데이터의 1~3% 이상 범위의 데이터를 검색하는 경우는 차라리 인덱스를 만들지 않는 것이 시스템 성능에 도움이 된다. 
+GO
+
+--이번엔 다른 열에 인덱스를 생성 (위의 말이 맞나 확인해보기)
+SELECT TOP(19820) * INTO Cust2_C FROM AdventureWorks2016CTP3.Sales.Customer ORDER BY NEWID();
+SELECT TOP(19820) * INTO Cust2_NC FROM AdventureWorks2016CTP3.Sales.Customer ORDER BY NEWID();
+CREATE CLUSTERED INDEX idx_cust2_c ON Cust2_C (TerritoryID);
+CREATE NONCLUSTERED INDEX idx_cust2_nc ON Cust2_NC (TerritoryID);
+
+SELECT *FROM Cust2_C WHERE TerritoryID =2; -- 클러스터형 인덱스는 인덱스를 잘 사용
+SELECT *FROM Cust2_NC WHERE TerritoryID =2; -- 비클러스터형 인덱스는 인덱스를 사용하지 않고 스캔 사용
+
+SELECT DISTINCT TerritoryID FROM Cust2_NC; -- 2만개의 데이터에 TerritoryID는 10가지 밖에 없는데 1~10까지 중 하나만 가져와도 엄청나게 많은 데이터(평균 10% = 약 2천건)을 가져오게 됨
+GO
+
+--이번엔 인덱스가 있어서 사용해야 하는데도, 쿼리문을 잘못 만들면 인덱스를 사용하지 않는 경우 확인
+SELECT *FROM Cust_C WHERE CustomerID = 100; 
+-- CustomerID에 어떤 가공을 해보자. 1이란 숫자는 곱해도 그 값이 바뀌지 않는다. 
+SELECT *FROM Cust_C WHERE CustomerID*1 = 100; 
+-- CustomerID에 1을 곱하니 스캔을 한다. SQL SERVER가 인덱스를 사용하지 못함. 이럴 경우에는 이럴 때는 연산을 우측으로 넘겨야 한다. 
+-- 우측으로 넘어가게 되면 더하기는 빼기로 곱하기는 나누기로 바뀐다. 
+SELECT *FROM Cust_C WHERE CustomerID = 100/1; -- 인덱스를 사용하는 것을 볼 수 있다. 
+-- 최대한 인덱스에는 아무런 가공을 하지 않는 것이 좋다. 
 
 
+---- 결론: 인덱스를 생성해야 하는 경우와 그렇지 않은 경우 
 
+-- 1. 인덱스는 열 단위에서 생성된다.
 
+-- 2. WHERE절에서 사용되는 열에 인덱스를 만들어야 한다.
+-- 테이블 조회 시 인덱스를 사용하는 경우 WHERE절의 조건에 해당 열이 나오는 경우에만 주로 사용된다. 
+SELECT name, birthyear, addr FROM userTbl WHERE userID = 'KKH';
+-- 이 경우에 USERID 열에만 인덱스를 생성할 필요가 있다는 것. 
 
+-- 3. WHERE 절에 사용되더라도 자주 사용해야 가치가 있다. 
 
+-- 4. 데이터 중복도가 높은 열은 인덱스를 만들어도 별 효용이 없다.
+-- 예를 들어 SELECT *FROM table1 WHERE col1 = 'value1'의 쿼리를 사용하면
+-- table1의 데이터 건수가 10000건이라면 이 쿼리의 결과가 100~300건 미만이여야 'col1'에 비클러스터형 인덱스를 만들 가치가 있다는 것
+
+--5. 외래 키가 사용되는 열에는 인덱스를 되도록 생성해주는 것이 좋다.
+
+--6. JOIN에 자주 사용되는 열에는 인덱스를 생성해주는 것이 좋다. 
+
+--7. INSERT/UPDATE/DELETE가 얼마나 자주 일어나는 지를 고려해야한다. 
+-- 왜냐면 인덱스는 단지 읽기에서만 성능을 향상시키며, 데이터 변경은 오히려 많은 부담을 주기 때문이다. 
+
+--8. 클러스터형 인덱스는 테이블당 하나만 생성할 수 있다.
+--만약 자주 조회하는 열이 두 개 이상이라면? 
+USE sqlDB;
+SELECT USERID, NAME, BIRTHYEAR FROM userTbl WHERE birthYear <1969;
+SELECT USERID, NAME, height FROM userTbl WHERE height <175;
+--이런 식으로 BIRTHYEAR과 HEIGHT의 중복도 등 모든 조건이 비슷하다면
+--하나는 클러스터형 인덱스를 생성하고 다른 하나는 '포괄 열이 있는 인덱스'로 생성하면 둘 다 클러스터형 인덱스 효과를 낼 수 있다.
+
+--9. 클러스터형 인덱스가 테이블에 아예 없는 것이 좋은 경우도 있다. 
+-- 회원 테이블의 USERID가 순서와 관계없이 입력되면 클러스터형 인덱스로 구성되어있으면 데이터가 입력되는 즉시 정렬이 계속 수행되고
+-- 페이지 분할이 끊임 없이 일어나게 될 수 있어서, 시스템 성능에 문제가 심각해 질 수도 있어 이럴 경우에는 PRIMARY KEY 옆에 NONCLUSTERED를 붙여준다. 
+
+--10. 사용하지 않는 인덱스는 제거
+
+--11. 계산 열에도 인덱스 활용 가능 
+USE tempdb;
+CREATE TABLE COMPUTETBL (INPUT1 INT, INPUT2 INT, HAP AS INPUT1 + INPUT2 PERSISTED); 
+--PERSISTED 옵션: 계산된 열이 SELECT 될 때 계산되지 않고 INSERT 및 UPDATE시에 물리적으로 저장되게 하기 위한 옵션입니다. 
+--이 옵션을 사용하면 SELECT 할 때 발생하는 부하를 줄일 수 있습니다.
+INSERT INTO COMPUTETBL VALUES(100,100);
+INSERT INTO COMPUTETBL VALUES(200,200);
+INSERT INTO COMPUTETBL VALUES(300,300);
+INSERT INTO COMPUTETBL VALUES(400,400);
+INSERT INTO COMPUTETBL VALUES(500,500);
+GO
+SELECT *FROM COMPUTETBL;
+GO 
+CREATE CLUSTERED INDEX IDX_COMPUTETBL_HAP ON COMPUTETBL(HAP);
+GO
+SELECT *FROM COMPUTETBL WHERE HAP <=300; --계산 값도 인덱스를 사용한 것을 확인.
 
 
