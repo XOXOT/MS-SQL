@@ -583,3 +583,30 @@ AS
 GO
 INSERT INTO v_height177 VALUES('WDT','우당탕', 2006, '서울', '010','3333333', 155, '2019-3-3');
 -- 키가 177미만은 이제는 입력이 되지 않고 177 이상의 데이터만 입력된다. 
+
+--8. 두 개 이상의 테이블이 관련된 복합 뷰를 생성하고 데이터를 입력
+CREATE VIEW v_userbuyTbl
+AS
+	SELECT U.userid, U.name, B.prodName, U.addr, U.mobile1 + U.mobile2 AS mobile
+	FROM userTbl U
+		INNER JOIN buyTbl B
+			ON U.userid = B.userid;
+GO
+INSERT INTO v_userbuyTbl VALUES('PKL','박경리','운동화','경기', '0000000000','2020-2-2');
+-- 원칙적으로 두 개 이상의 테이블이 관련된 뷰는 업데이트 할 수 없으며 이것은 INSTEAD OF 트리거를 사용하여 해결 가능 13장
+
+--9. 뷰가 참조하는 테이블을 삭제
+--9-1 두 테이블을 삭제
+DROP TABLE buyTbl, userTbl;
+--9-2 뷰를 다시 조회해본다.
+SELECT *FROM v_userbuyTbl; --당연히 테이블이 없기 때문에 조회할 수 없다는 오류 메시지 뜸
+--9-3 복원하고 다시 생성
+USE tempdb;
+RESTORE DATABASE sqlDB FROM DISK = 'C:\sqlDB.bak' WITH REPLACE;
+GO
+USE sqlDB
+GO
+CREATE VIEW v_userTbl
+AS
+	SELECT userid, name, addr FROM userTbl;
+EXEC sp_depends userTbl;
