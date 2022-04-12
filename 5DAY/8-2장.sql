@@ -331,8 +331,255 @@ GO
 SELECT *FROM userTbl --확인 
 GO 
 
+----메모리 엑세스에 최적화된 테이블
+--메모리 테이블의 성능을 확인
+
+--1. 데이터 생성
+USE tempdb;
+CREATE DATABASE memoryDB;
+GO
+--2. 메모리에 최적화된 파일 그룹을 데이터베이스에 추가 
+-- 개체 탐색기에서 데이터베이스를 새로 고침 한 후에 MEMORYDB에서 속성 -> 파일 그룹 페이지 선택
+-- 파일 그룹에서 memoryGroup으로 파일 그룹 추가 
+-- 파일 탭에서 memoryfile 추가 -> 파일형식은 filestream 데이터로 설정
+
+--3. 일반 테이블과 메모리 테이블 2개를 만듬. 메모리 테이블에는 기본키 + 비클러스터형 인덱스가 필요. 또한 예약어로 MEMORY OPTIMIZED=ON 사용
+USE memoryDB;
+CREATE TABLE diskTable ( a INT PRIMARY KEY NONCLUSTERED, b NCHAR (100) );
+GO
+CREATE TABLE memoryTable (a INT PRIMARY KEY NONCLUSTERED, b NCHAR (100) )
+WITH (MEMORY_OPTIMIZED=ON);
+GO
+
+--4. 메모리 테이블은 저장 프로시저를 사용해야 효율이 확인된다. 일반 테이블과 메모리 테이블에 500건의 데이터를 입력하는 저장 프로시저를 만들자
+CREATE PROCEDURE usp_diskInsert
+@data NCHAR(100)
+AS
+	DECLARE @i INT = 1;
+	WHILE @i <= 500
+	BEGIN
+		INSERT INTO dbo.diskTable(a, b) VALUES (@i, @data);
+		SET @i += 1;
+	END
+GO
+--메모리 테이블에도 데이터 입력
+CREATE PROCEDURE usp_memoryInsert
+@data NCHAR(100)
+WITH NATIVE_COMPILATION, SCHEMABINDING
+AS
+BEGIN ATOMIC WITH (TRANSACTION ISOLATION LEVEL=SNAPSHOT, LANGUAGE = N'Korean')
+		DECLARE @i INT = 1;
+		WHILE @i <= 500
+		BEGIN 
+			INSERT INTO dbo.memoryTable(a, b) VALUES (@i, @data);
+			SET @i += 1;
+		END
+END
+GO
+
+--5. 저장 프로시저를 호출하여 데이터를 500건씩 입력 그리고 시간을 확인
+-- 일반 테이블에 데이터를 입력
+DECLARE @sendData NCHAR(100) = REPLICATE(N'가',100); -- 오른쪽 하단의 시간을 보면 테이블을 입력하는데 시간이 많이 걸림
+EXECUTE usp_diskInsert @sendData;
+
+--메모리 테이블에 데이터 입력
+DECLARE @sendData NCHAR(100) = REPLICATE(N'가',100);
+EXECUTE usp_memoryInsert @sendData;
+
+--6. 두 테이블 조회
+SELECT *FROM diskTable ORDER BY a;
+SELECT *FROM memoryTable ORDER BY a;
+-- 따라서 메모리 테이블이 성능이 좋다는 것을 알 수 있음
+GO
+
+--------------스키마
+--데이터베이스_이름.스키마.개체_이름
+
+-- 스키마란 데이터베이스 내에 있는 개체들을 관리하기 위한 묶음
+
+CREATE TABLE MYTBL(ID INT) -- 라고 지정하면 자동으로 스키마는 DBO가 된다.
+ -- CREATE TABLE 서버이름.tableDB.dbo.myTbl(id int)가 본 형태이다. 
+
+--실습 
+
+--1. 데이터 생성
+-- 데이터 베이스 생성
+USE tempdb;
+CREATE DATABASE schemaDB;
+-- 스키마 생성
+USE schemaDB;
+GO
+CREATE SCHEMA userSchema;
+GO
+CREATE SCHEMA buySchema;
+--테이블 생성 시에 스키마 지정 생성
+CREATE TABLE userSchema.userTBL(id int);
+CREATE TABLE buySchema.buyTBL(num int);
+CREATE TABLE buySchema.prodTBL(pid int);
+--이렇게 스키마를 지정하면 반드시 스키마이름.테이블이름을 사용해야함
+SELECT *FROM USERTBL; -- (오류)
+SELECT *FROM userSchema.userTBL; -- 이렇게 해야함.
+--사용한 데이터 베이스 삭제
+USE tempdb;
+DROP DATABASE schemaDB;
+GO
+
+--------------뷰
+-- 뷰는 일반 사용자 입장에서는 테이블과 동일하게 사용하는 개체다.
+-- 뷰는 한 번 생성하면 테이블이라고 생각하고 사용해도 될 정도로 사용자의 입장에서는 테이블과 거의 동일한 개체로 여겨진다.
+
+USE tableDB;
+SELECT USERID, NAME, ADDR FROM userTbl;
+--위에서 나온 결과를 3개의 열을 가진 테이블로 봐도 무방한데 이 개념이 바로 뷰이다. 
+-- 그래서 뷰의 실체는 SELECT문이 되는 것이다.
+-- SELECT USERID, NAME, ADDR FROM userTbl;의 결과를 V_USERTBL이라고 부른다면 앞으로는 V_USERTBL을 그냥 테이블이라고 생각하고 접근해도 된다.
+
+-- 뷰 생성
+USE tableDB;
+GO
+CREATE VIEW v_userTbl
+AS
+	SELECT userid, name, addr FROM userTbl
+GO
+SELECT *FROM v_userTbl; --새로운 뷰 테이블 확인
+-- 뷰는 거의 읽기 전용으로 사용하지만 뷰를 통해서 원래 테이블의 데이터를 수정할 수 있다.
+GO
+
+-------- 뷰의 장점
+--1. 보안에 도움이 된다. 
+-- v_userTbl에는 사용자의 이름과 주소만이 있을 뿐, 사용자의 중요한 개인정보인 출생년도, 연락처, 키, 가입일 등의 정보는 들어있지 않다. 
+
+--2. 복잡한 쿼리를 단순화시킬 수 있다. 
+
+-- 물건을 구매한 회원들에 대한 쿼리를 자주사용한다면 
+USE sqlDB;
+SELECT U.userid, U.name, B.prodName, U.addr, U.mobile1 + U.mobile2 AS [연락처]
+FROM userTbl U
+INNER JOIN buyTbl B
+ON U.userid = B.userid;
+
+-- 아래와 같이 뷰를 설정하여 단순화 시킨다. 
+CREATE VIEW v_userbuyTbl
+AS
+SELECT U.userid, U.name, B.prodName, U.addr, U.mobile1 + U.mobile2 AS [연락처]
+FROM userTbl U
+INNER JOIN buyTbl B
+ON U.userid = B.userid ;
+GO
+SELECT *FROM v_userbuyTbl WHERE name = N'김범수';
+GO
 
 
+------실습 
+--1. 복원
+USE tempdb;
+RESTORE DATABASE sqlDB FROM DISK = 'D:\DB\SQL\2DAY\sqlDB.bak' WITH REPLACE;
+GO
+ 
+--2. 기본 뷰 생성
+USE sqlDB;
+GO
+CREATE VIEW v_userbuyTbl
+AS
+	SELECT U.userid AS [USER ID], U.name AS [USER NAME], B.prodName AS [PRODUCT NAME],
+			U.addr, U.mobile1 + U.mobile2 AS [MOBILE PHONE]
+	FROM userTbl U
+		INNER JOIN buyTbl B
+		ON U.userid = B.userid;
+GO
+SELECT [USER ID],[USER NAME] FROM v_userbuyTbl;
+GO
+
+--3. 뷰의 수정은 ALTER VIEW 구문을 사용하면 된다. 
+ALTER VIEW v_userbuyTbl
+AS
+	SELECT U.userid AS [사용자 아이디], U.name AS [이름], B.prodName AS [제품이름],
+			U.addr, U.mobile1 + U.mobile2 AS [전화 번호]
+	FROM userTbl U
+		INNER JOIN buyTbl B
+			ON U.userid = B.userid;
+GO
+SELECT [이름], [전화 번호] FROM v_userbuyTbl;
+GO
+
+--4. 뷰의 삭제는 DROP VIEW 구문을 사용하면 된다. 
+DROP VIEW v_userbuyTbl;
+
+--5. 뷰에 대한 정보 카탈로그 뷰인 sys.sql_modules에 들어 있다. 
+
+-- 5-1. 간단한 뷰를 다시 생성 
+USE sqlDB;
+GO
+CREATE VIEW v_userTbl
+AS
+	SELECT userid, name, addr FROM userTbl;
+GO
+-- 5.2 뷰의 소스 확인
+SELECT *FROM sys.sql_modules; -- CTRL + T를 눌러 텍스트형으로 보면 더 잘보임 CTRL + D를 눌러 다시 다시 표형태로 돌아감
+GO
+
+-- 5.3 뷰가 여러 개라면 object_id로는 어떤 것인지 구분하기가 어렵다 OBJECT_NAME() 함수를 사용하면 쉽게 볼 수 있다. 
+SELECT OBJECT_NAME (object_id) AS [뷰 이름], definition FROM sys.sql_modules;
+
+-- 5.4 보안을 위해 뷰의 소스를 확인하지 못하도록 할 수 있다. WITH ENCRYPTION 사용 
+ALTER VIEW V_userTbl
+	WITH ENCRYPTION
+AS
+SELECT userid, name, addr FROM userTbl;
+GO
+SELECT OBJECT_NAME (object_id) AS [뷰 이름], definition FROM sys.sql_modules;
+-- 소스(definition)부분이 NULL로 나오는 것을 볼 수 있다. 이것은 다시 풀 수는 없으므로 중요한 코드라면 미리 다른 곳에 저장해야함
+GO
 
 
+--6. 뷰를 통해서 데이터를 변경
 
+--6-1 V_userTbl뷰를 통해 데이터를 수정 
+UPDATE V_userTbl SET addr = '부산' WHERE userID='JKW';
+
+--6-2. 데이터 입력
+INSERT INTO V_userTbl(userID, name, addr) VALUES('KBM', '김병만', '충북');
+-- v userTbl이 참조하는 테이블 userTbl의 열 중에서 birthYear 열은 NOT NULL로 설정되어서 반드시 값을 입력해야 한다. 
+-- 하지만 현재의 v_userTbl에서는 birthYear를 참조하지 않으므로 값을 입력할 수 없다.
+-- v_userTbl을 값을 통해서 입력하고 싶다면 v_userTbl에 birthYear를 포함하도록 재정의하거나,
+-- userTbl에서 birthYear를 NULL 또는 DEFAULT 값을 지정해야 한다.
+
+--6-3. 그룹 합수를 포함하는 뷰를 정의
+CREATE VIEW V_sum
+AS
+	SELECT userid AS [userid], SUM (price*amount) AS [total]
+FROM buyTbl GROUP BY userid;
+GO
+SELECT *FROM V_sum;
+-- SUM()함수를 사용한 뷰를 수정할 수는 없다. 이 외에도 수정할 수 없는 경우는 다음과 같다
+-- 1. 집계 함수를 사용한 뷰
+-- 2. UNION ALL, COROSS JOIN 등을 사용한 뷰
+-- 3. DISTINCT, GROUP BY 등을 사용한 뷰
+
+
+--7. 지정한 범위로 뷰를 생성하고 데이터를 입력
+
+--7-1. 키가 177 이상인 뷰를 생성
+CREATE VIEW v_height177
+AS
+	SELECT *FROM userTbl WHERE height >= 177;
+GO
+SELECT *FROM v_height177;
+
+--7-2. v_height177 뷰에서 키가 177 이하인 데이터를 삭제
+DELETE v_height177 WHERE height < 177;
+
+--7-3. 177 이하인 데이터가 없으므로 데이터 입력
+INSERT INTO v_height177 VALUES('KBM', '김병만', 1977, '경기', '010', '5555555', 158, '2019-01-01');
+SELECT *FROM v_height177; --확인해도 입력값은 보이지 않음 직접 USERTBL을 확인해야 김병만이 보임 
+
+--7-4. 177 이상인 뷰에서 158의 키를 입력하는 것은 바람직하지 않아보이므로
+-- 즉, 예상치 못한 경로를 통해서 입력되지 말아야 할 데이터가 입력된 느낌
+-- 키가 177 이상인 뷰이므로 177이상 데이터만 입력되는 것이 바람직할 거 같은데 이럴때는 WITH CHECK OPTION을 사용한다. 
+ALTER VIEW v_height177
+AS
+	SELECT * FROM userTbl WHERE height >= 177
+		WITH CHECK OPTION ;
+GO
+INSERT INTO v_height177 VALUES('WDT','우당탕', 2006, '서울', '010','3333333', 155, '2019-3-3');
+-- 키가 177미만은 이제는 입력이 되지 않고 177 이상의 데이터만 입력된다. 
