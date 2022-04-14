@@ -1,0 +1,12 @@
+D:\DB\SQL\9DAY\WindowsApp1\WindowsApp1\bin\Debug\WindowsApp1.exe.config
+D:\DB\SQL\9DAY\WindowsApp1\WindowsApp1\bin\Debug\WindowsApp1.exe
+D:\DB\SQL\9DAY\WindowsApp1\WindowsApp1\bin\Debug\WindowsApp1.pdb
+D:\DB\SQL\9DAY\WindowsApp1\WindowsApp1\bin\Debug\WindowsApp1.xml
+D:\DB\SQL\9DAY\WindowsApp1\WindowsApp1\obj\Debug\simple.vbproj.AssemblyReference.cache
+D:\DB\SQL\9DAY\WindowsApp1\WindowsApp1\obj\Debug\WindowsApp1.Form1.resources
+D:\DB\SQL\9DAY\WindowsApp1\WindowsApp1\obj\Debug\WindowsApp1.Resources.resources
+D:\DB\SQL\9DAY\WindowsApp1\WindowsApp1\obj\Debug\simple.vbproj.GenerateResource.cache
+D:\DB\SQL\9DAY\WindowsApp1\WindowsApp1\obj\Debug\simple.vbproj.CoreCompileInputs.cache
+D:\DB\SQL\9DAY\WindowsApp1\WindowsApp1\obj\Debug\WindowsApp1.exe
+D:\DB\SQL\9DAY\WindowsApp1\WindowsApp1\obj\Debug\WindowsApp1.xml
+D:\DB\SQL\9DAY\WindowsApp1\WindowsApp1\obj\Debug\WindowsApp1.pdb
