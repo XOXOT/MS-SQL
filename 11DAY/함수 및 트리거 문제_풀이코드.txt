@@ -1,0 +1,82 @@
+--(1) hr.dept 테이블 기반으로 hr.dept_temp 테이블을 생성하세요.
+--    그리고, hr.dept_temp 데이터를 대상으로 OPERATIONS 부서의 
+--    위치를 SEOUL 로 변경하세요.
+--    단, 변경시 Sub Query 를 사용하세요.
+
+SELECT * into hr.dept_temp FROM hr.dept;
+
+UPDATE hr.dept_temp
+   SET LOC = 'SEOUL'
+ WHERE DEPTNO = (SELECT DEPTNO
+                   FROM hr.dept_temp
+                  WHERE DNAME='OPERATIONS');
+
+
+
+
+--(2) 문제 2 hr.emp 테이블 기반으로 hr.emp_temp 테이블을 생성하세요.
+--    그리고, 급여가 1등급인 사원 정보만 입력되도록 하세요.
+--    hr.emp_temp 데이터를 대상으로 급여 등급이 1등급이며, 
+--    부서 번호가 30번인 사원 정보를 삭제하도록 하세요. 
+--    단, 삭제시 Sub Query 를 사용하세요.
+
+SELECT * into hr.emp_temp
+  FROM hr.emp E, hr.salgrade S
+ WHERE E.SAL BETWEEN S.LOSAL AND S.HISAL
+   AND S.GRADE = 1;
+
+DELETE FROM hr.emp_temp
+ WHERE EMPNO IN (SELECT E.EMPNO
+                   FROM hr.emp_temp E, hr.salgrade S
+                  WHERE E.SAL BETWEEN S.LOSAL AND S.HISAL
+                    AND S.GRADE = 1
+                    AND DEPTNO = 30);
+
+
+
+
+--(3) 세후 급여를 계산하는 함수를 hr 스키마에 생성하세요.
+--    세금은 일괄적으로 5% 로 계산하세요.
+--    그리고, 생성된 함수를 사용하여 전 사원의 세전 과 세후를 
+--    확인할 수 있도록 출력하세요.
+
+create function hr.ufn_afterTax( @sal int )
+   returns int
+as
+	BEGIN
+		declare @salOfAfterTax int
+		set @salOfAfterTax = ROUND((@sal - (@sal * 0.05)), 2)
+		return (@salOfAfterTax);
+	END
+
+
+
+SELECT EMPNO, ENAME, SAL, hr.ufn_afterTax(SAL) AS AFTERTAX
+  FROM hr.EMP;
+
+
+
+
+--(4) hr.emp_temp 에 트리거를 추가하세요.
+--    트리거의 기능은 토, 일 요일에 insert, update, delete 에 대한
+--    DML 이벤트가 발생할 경우 
+--    주말에는 등록, 수정, 삭제 할 수 없습니다.' 메시지를 출력하며,
+--    트랜잭션이 취소가 되도록 하세요.
+
+CREATE TRIGGER hr.trg_empTemp_noDML_weekend
+on hr.emp_temp
+after insert, update, delete
+as
+BEGIN
+   IF ( DATEPART(dw, GETDATE()) in (1, 7))
+      begin
+         print '주말에는 등록, 수정, 삭제 할 수 없습니다.'
+         rollback
+      end
+END
+
+
+
+UPDATE hr.emp_temp SET sal = 3500 WHERE empno = 7369;
+
+
