@@ -93,7 +93,7 @@ AS
 BEGIN
 	DECLARE @oqcResult varchar(10)
 	SET @oqcResult = ( SELECT OqcResult FROM inserted )
-		if OQC.ufn_getOqcResultCode(@oqcResult) < 3
+		if OQC.ufn_getOqcResultCode(@oqcResult) < 3 -- OqcResult이 1,2인거만 들어감 
 				BEGIN
 				   INSERT INTO TB_MES_ERP_IF_OQC
 					  (ProductionDate, LotNo, ModelCd, 
@@ -119,35 +119,34 @@ SELECT *FROM TB_ERP_OQC
 --      - 정상적으로 생산 실적 데이터가 업로드된 경우는 영구적 반영을 위해 트랜잭션을 완료시키고,
 --        로트 번호와 함께 ‘MES 생산실적이 ERP에 성공적으로 업로드되었습니다.' 의 메시지를 출력한다.
 --      - 모든 예외에 대해서는 트랜잭션을 이전 상태로 되돌려야 한다.
-create procedure OQC.sp_oqcUpload
+CREATE PROC OQC.sp_oqcUpload
     @p_in_lotNo varchar(10), 
     @p_in_proDate varchar(10)
-as
-begin
+AS
+BEGIN
 
-    declare @v_processResult int
-    set @v_processResult = 1
+    DECLARE @v_processResult INT
+    SET @v_processResult = 1
 
-    declare @v_prodResultCnt int
-    set @v_prodResultCnt = 0
-
-    set @v_prodResultCnt = 
+    DECLARE @v_prodResultCnt int
+    SET @v_prodResultCnt = 0
+    SET @v_prodResultCnt = 
        (
-           select count(*)
-             from TB_MES_ERP_IF_OQC
-            where LotNo = @p_in_lotNo
-              and CONVERT(NVARCHAR, ProductionDate, 23) = @p_in_proDate
+           SELECT COUNT(*)
+             FROM TB_MES_ERP_IF_OQC
+            WHERE LotNo = @p_in_lotNo
+              and CONVERT(NVARCHAR, ProductionDate, 23) = @p_in_proDate --23은 2022-04-19 형식
               and erpupload is null
-              and oqcresult in (1, 2)
+              and oqcresult in (1, 2) -- OK나 Special OK만 가능
        );
     
-    if @v_prodResultCnt = 0
-       begin
+    IF @v_prodResultCnt = 0
+       BEGIN
           print(concat(N'업로드할 실적이 없습니다.','( Lot No : ',@p_in_lotNo,' )'));
 	  return
        end
     
-    begin tran
+    begin tran --시작점
        insert into TB_ERP_OQC
                    (ProductionDate, LotNo, ModelCd, FactoryCD,
                      LineCD, Quantity, OqcDate, OqcResult
@@ -181,12 +180,12 @@ begin
 
        if @v_processResult = 1
 	  begin
-             commit tran
+             commit tran -- 오류가 없으면 그대로 실행
              print(concat(N'MES 생산실적이 ERP에 성공적으로 업로드되었습니다.','( Lot No : ',@p_in_lotNo,' )'));
           end
        else
 	  begin
-             rollback tran
+             rollback tran -- 오류가 생겼으니 시작점으로 반환
              print(concat(N'MES 생산실적을 ERP에 업로드중에 에러가 발생했습니다.','( Lot No : ',@p_in_lotNo,' )'));
           end
 end
