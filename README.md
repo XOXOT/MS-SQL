@@ -1,6 +1,5 @@
 ## 💻 SQL server 학습 리퍼지토리 💻
-### 1DAY
-<span style="color:red">Red Text</span>
+### <mark> 1DAY <mark>
 
 #### 3장 - 인덱스, 뷰, 저장 프로시저, 트리거, 백업 맛보기
 #### 4장 - 데이터베이스 모델링
