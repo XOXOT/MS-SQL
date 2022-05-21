@@ -40,7 +40,7 @@ ___
 #### Example Code Practice 
 ___ 
 ### 12DAY
-## Test
-#### [🗒Test 파일](https://github.com/JaehyeonHeo/StudySqlServer/tree/main/Test%EC%9A%A9%20%EB%8D%B0%EC%9D%B4%ED%84%B0%EB%B2%A0%EC%9D%B4%EC%8A%A4_bookRentalShop)
+## ✍🏻 Test ✍🏻
+#### [🗒Test 파일](https://github.com/XOXOT/MS-SQL/blob/main/12DAY/%EB%8D%B0%EC%9D%B4%ED%84%B0%EB%B2%A0%EC%9D%B4%EC%8A%A4%20%ED%8F%89%EA%B0%80.pdf)
 
 ## [🔙BACK](https://github.com/XOXOT?tab=repositories)
