@@ -49,32 +49,32 @@ ___
 ##### 문제1. MES, ERP 데이터베이스 생성 SQL을 작성하세요.
 ![문제1](https://github.com/XOXOT/MS-SQL/blob/main/img/%EB%AC%B8%EC%A0%9C1.png)
 ##### 문제2. MES, ERP 데이터베이스에 OQC 스키마의 생성 SQL을 작성하세요. 
-
+![문제2](https://github.com/XOXOT/MS-SQL/blob/main/img/%EB%AC%B8%EC%A0%9C2.png)
 ##### 문제3. MES 시스템의 생산실적 테이블(TB_MES_OQC) 과 ERP 시스템 연계(I/F) 테이블(TB_MES_ERP_IF_OQC) 을 생성하는 SQL을 각각 작성하세요.
 ######      - MES 시스템의 생산실적 테이블
 ######      - MES 시스템의 ERP 시스템 연계(I/F) 테이블
-
+![문제3](https://github.com/XOXOT/MS-SQL/blob/main/img/%EB%AC%B8%EC%A0%9C3.png)
 ##### 문제4. ERP 시스템의 생산실적 테이블(TB_ERP_OQC)을 생성하는 SQL을 작성하세요.
-
+![문제4](https://github.com/XOXOT/MS-SQL/blob/main/img/%EB%AC%B8%EC%A0%9C4.png)
 ##### 문제5. MES 시스템에 MES 시스템의 생산실적 테이블, MES 시스템의 ERP 시스템 연계(I/F) 테이블, ERP 시스템의 생산실적 테이블(TB_ERP_OQC)에 대한 동의어를 생성하는 SQL을 작성하세요.
-
+![문제5](https://github.com/XOXOT/MS-SQL/blob/main/img/%EB%AC%B8%EC%A0%9C5.png)
 ##### 문제6. 제품의 품질 판정결과에 대한 코드값을 반환해주는 함수를 생성하는 SQL을 작성하세요. 단, 함수의 이름은 ufn_getOqcResultCode 로 하세요.
-
+![문제6](https://github.com/XOXOT/MS-SQL/blob/main/img/%EB%AC%B8%EC%A0%9C6.png)
 ##### 문제7. MES 시스템에서 생산실적 테이블(TB_MES_OQC)에 생산실적이 등록 및 수정이 될 때 ERP 시스템 연계(I/F) 테이블(TB_MES_ERP_IF_OQC)에 생산실적이 등록될 수 있도록 하는 Trigger 생성 문장을 작성하세요. 단, Trigger 이름은 TRG_TB_MES_OQC_INSERT_UPDATE 로 하세요.
-
+![문제7](https://github.com/XOXOT/MS-SQL/blob/main/img/%EB%AC%B8%EC%A0%9C7.png)
 ##### 문제8. ERP 시스템 연계(I/F) 테이블(TB_MES_ERP_IF_OQC) 의 생산 실적이 ERP 시스템의 생산실적 테이블(TB_ERP_OQC) 에 정상적으로 등록이 되도록 Procedure를 생성하는 SQL을 작성하세요.
 ######       - Procedure 이름 : sp_oqcUpload
 ######       - 매개변수 : 생산일(ProductionDate) 과 로트번호(LotNo)이며, 생산 실적 데이터 조회시 사용된다.
 ######       - ERP 시스템의 생산실적으로 upload 할 데이터가 없으면, 'ERP에 업로드 할 MES 생산실적이 없습니다.' 의 메시지를 출력한다. 
 ######       - 정상적으로 생산 실적 데이터가 업로드된 경우는 영구적 반영을 위해 트랜잭션을 완료시키고 로트 번호와 함께 ‘MES 생산실적이 ERP에 성공적으로 업로드되었습니다.' 의 메시지를 출력한다.
 ######       - 모든 예외에 대해서는 트랜잭션을 이전 상태로 되돌려야 한다.
-
+![문제8](https://github.com/XOXOT/MS-SQL/blob/main/img/%EB%AC%B8%EC%A0%9C8.png)
 ##### 문제9. MES의 생산실적(TB_MES_OQC) 테이블에 모든 판정 결과에 해당하는 데이터를 한 건씩 입력하고, 양품 이외의 판정결과에 해당하는 한 건의 데이터를 양품 판정으로 수정하는 SQL을 각각 작성하세요.
 ######      - 신규 데이터 입력 SQL
 ######      - 기존 데이터 수정 SQL
-
+![문제9](https://github.com/XOXOT/MS-SQL/blob/main/img/%EB%AC%B8%EC%A0%9C9.png)
 ##### 문제10. 판정 결과가 OK 인 생산실적, 판정 결과가 Special OK 인 생산실적을 ERP 시스템에 등록하는procedure 호출문을 각각 작성하세요.
 ######      - 판정 결과가 OK 인 생산실적을 ERP 시스템에 등록하는 procedure 호출문
 ######      - 판정 결과가 Special OK 인 생산실적을 ERP 시스템에 등록하는 procedure 호출문
-
+![문제10](https://github.com/XOXOT/MS-SQL/blob/main/img/%EB%AC%B8%EC%A0%9C10.png)
 ## [🔙BACK](https://github.com/XOXOT?tab=repositories)
