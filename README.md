@@ -39,7 +39,8 @@ ___
 #### 16장 - [응용 프로그램 연결](https://github.com/XOXOT/MS-SQL/blob/main/9DAY/16%EC%9E%A5.sql)
 ___ 
 ### 10DAY, 11DAY
-#### Example Code Practice 
+#### [Example Code Practice_1](https://github.com/XOXOT/MS-SQL/tree/main/10DAY)
+#### [Example Code Practice_2](https://github.com/XOXOT/MS-SQL/tree/main/11DAY)
 ___ 
 ### 12DAY
 ## ✍🏻 Test ✍🏻
