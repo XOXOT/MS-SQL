@@ -47,7 +47,7 @@ ___
 #### [🗒Test 파일](https://github.com/XOXOT/MS-SQL/blob/main/12DAY/%EB%8D%B0%EC%9D%B4%ED%84%B0%EB%B2%A0%EC%9D%B4%EC%8A%A4%20%ED%8F%89%EA%B0%80.pdf)
 
 ##### 문제1. MES, ERP 데이터베이스 생성 SQL을 작성하세요.
-https://github.com/XOXOT/MS-SQL/blob/main/img/%EB%AC%B8%EC%A0%9C1.png
+![문제1](https://github.com/XOXOT/MS-SQL/blob/main/img/%EB%AC%B8%EC%A0%9C1.png)
 ##### 문제2. MES, ERP 데이터베이스에 OQC 스키마의 생성 SQL을 작성하세요. 
 
 ##### 문제3. MES 시스템의 생산실적 테이블(TB_MES_OQC) 과 ERP 시스템 연계(I/F) 테이블(TB_MES_ERP_IF_OQC) 을 생성하는 SQL을 각각 작성하세요.
